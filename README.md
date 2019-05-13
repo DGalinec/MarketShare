@@ -349,15 +349,32 @@ Boddah/GfK/$ git config --global user.email “galinec.david@gmail.com”
 Initialise a new git repository
 Boddah/GfK/$ git init 
 
-Know the status of your repository
-Boddah/GfK/$ git status
-
 List files to be ignored
 Boddah/GfK/$ touch .gitignore 
 
   .DS_Store
   node_modules/
 
+Change the “origin” address where to push a repository 
+Boddah/GfK/$ git remote add origin https://github.com/DGalinec/MarketShare.git
+
+Check the address where a repository is pushed
+Boddah/GfK/$ git remote -v
+
+Know the status of your repository
+Boddah/GfK/$ git status
+
+stage / unstage a file 
+Boddah/GfK/$ git add filename.ext 
+Boddah/GfK/$ git reset filename.ext 
+
+stage all changed files 
+Boddah/GfK/$ git add -A 
+
+Commit files 
+Boddah/GfK/$ git commit -m ‘My first commit.’ 
+Push the changes on the server repository 
+Boddah/GfK/$ git push origin master 
 
 
 ——————————————— REMIX —————————————
@@ -518,4 +535,3 @@ contract MarketShare is Ownable {
         return sales[_index];
     }
 }
-
