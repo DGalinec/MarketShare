@@ -1,0 +1,521 @@
+MARKET SHARE
+
+——————————————— TRUFFLE —————————————
+$ cd /Users/cs996qs/Desktop/Boddah/
+Boddah/$ mkdir GfK
+Boddah/$ cd GfK
+
+(Terminal 2)$ ganache-cli
+
+Setup a new Truffle project
+Boddah/GfK/$ truffle init
+
+Replace the truffle-config.js content
+// Allows us to use ES6 in our migrations and tests.
+require('babel-register')
+require('babel-polyfill')
+
+module.exports = {
+  networks: {
+    development: {
+        host: '127.0.0.1',
+        port: 8545,
+        network_id: '*', // Match any network id
+    }
+  },
+};
+
+Install truffle-config.js required libraries
+Boddah/GfK/$ npm install babel-register --save-dev
+Boddah/GfK/$ npm install --save babel-polyfill
+
+Install openzeppelin libraries
+Boddah/GfK/$ npm init
+Press <ENTER> to all the questions and valid with ‘y’
+Boddah/GfK/$ npm install zeppelin-solidity
+
+
+Create /contracts/Seller.sol
+pragma solidity ^0.4.24;
+//pragma solidity ^0.5.0;
+
+import "../node_modules/zeppelin-solidity/contracts/ownership/Ownable.sol";
+import "../node_modules/zeppelin-solidity/contracts/math/SafeMath.sol";
+//import "github.com/OpenZeppelin/zeppelin-solidity/contracts/ownership/Ownable.sol";
+//import "github.com/OpenZeppelin/zeppelin-solidity/contracts/math/SafeMath.sol";
+
+/**
+ * @title Seller
+ * @dev The Seller contract manages creation, information and deletion of the
+ * seller addresses.
+ */
+contract Seller is Ownable {
+    
+    using SafeMath for uint256;
+    
+    mapping(address => bool) private areSellers;
+    uint256 private nbSellers;
+
+    constructor() public { }
+    
+    /**
+     * @dev add a new seller
+     */
+    function addSeller(address _address) public onlyOwner {
+        require(!areSellers[_address]);
+        areSellers[_address] = true;
+        nbSellers = nbSellers.add(1);
+    }
+    
+    /**
+     * @dev delete an existing seller
+     */
+    function deleteSeller(address _address) public onlyOwner {
+        require(areSellers[_address]);
+        areSellers[_address] = false;
+        nbSellers = nbSellers.sub(1);
+    }
+    
+    /**
+     * @return if a given address corresponds to a listed seller
+     */
+    function isSeller(address _address) public view returns(bool) {
+        return areSellers[_address];
+    }
+    
+    /**
+     * @return the total number number of currently listed sellers
+     */
+    function getNbSellers() public view returns(uint256) {
+        return nbSellers;
+    }
+    
+    /**
+     * @dev throws if called by any account not listed as a seller
+     */
+    modifier isAllowed() {
+        require(areSellers[msg.sender]);
+        _;
+    }
+}
+
+Create /contracts/MarketShare.sol
+pragma solidity ^0.4.24;
+
+import "./Seller.sol";
+
+/**
+ * @title MarketShare
+ * @dev The MarketShare contract manages creatin, information and deletion of sales
+ * records.
+ */
+contract MarketShare is Seller {
+    
+    using SafeMath for uint256;
+
+    mapping(address => uint256) private sales;
+    uint256 private totalSales;
+    uint256 private nbSales;
+
+    constructor() public {
+    }
+    
+    /**
+     * @dev records a sale from a seller
+     */
+    function recordSales(int256 _value) public isAllowed {
+        
+        /**
+         * @dev we do not allow negative sales value to be entered
+         */
+        require(_value >= 0);
+        _addSales(uint256(_value));
+    }
+    
+    function _addSales(uint256 _value) internal {
+        
+        /**
+         * @dev if a sales value already exists for a given address we delete it by 
+         * substracting it from totalSales and decreasing the nbSales counter 
+         */
+        if (sales[msg.sender] != 0) {
+            totalSales = totalSales.sub(sales[msg.sender]);
+            nbSales = nbSales.sub(1);
+        }
+        
+        sales[msg.sender] = _value;
+        
+        /**
+         * @dev we record a new sales only if the _value entered is greater than zero
+         */
+        if (_value > 0) {
+           totalSales = totalSales.add(_value);
+           nbSales = nbSales.add(1); 
+        }
+    }
+    
+    /**
+     * @return the number of sales records coming from different seller addresses
+     */
+    function getNbSales() public view returns(uint256) {
+        return nbSales;
+    }
+    
+    /**
+     * @return the total amount of sales records currently being recorded
+     */
+    function getTotalSales() public view returns(uint256) {
+        return totalSales;
+    }
+    
+    /**
+     * @return the sales record currently associated to a particular seller address
+     */
+    function getSales(address _address) public view returns(uint256) {
+        return sales[_address];
+    }
+}
+
+Create /migrations/2_marketshare_migration.js
+const MarketShare = artifacts.require("./MarketShare.sol");
+
+module.exports = async function(deployer) {
+  await deployer.deploy(MarketShare)
+  const marketshare = await MarketShare.deployed()
+};
+
+
+Change default solc 0.5.0 compiler in Truffle suite
+By default, Truffle will run the 0.5.0 version of solc compiler. Since Ownable.sol and SafeMath.sol are using a ^0.4.24 pragma solidity version, we need to specify Truffle to use another version of solc compiler. It is done by adding the “compilers” statement in the truffle-config.js file:
+// Allows us to use ES6 in our migrations and tests.
+require('babel-register')
+require('babel-polyfill')
+
+module.exports = {
+  compilers: {
+    solc: {
+      version: "0.4.24”,   // Change this to whatever you need
+    }
+  },
+  networks: {
+    development: {
+        host: '127.0.0.1',
+        port: 8545,
+        network_id: '*', // Match any network id
+    }
+  },
+};
+
+Compile and Deploy the contracts
+Boddah/GfK/$ truffle migrate
+
+Install the test libraries
+Boddah/GfK/$ npm install chai --save-dev
+Boddah/GfK/$ npm install chai-as-promised --save-dev
+Boddah/GfK/$ npm install babel-preset-es2015 --save-dev
+
+Add .babelrc at the root of the project
+{
+  "presets": ["babel-preset-es2015"]
+}
+
+Create /test/seller.test.js test file
+import chai from 'chai'
+import chaiAsPromised from 'chai-as-promised'
+chai.use(chaiAsPromised)
+const { expect, assert } = chai
+
+var Seller = artifacts.require("Seller");
+
+contract('Testing Seller contract', function(accounts) {
+  let seller;
+  const account0 = accounts[0];
+  const account1 = accounts[1];
+  const account2 = accounts[2];
+
+  it(' should be able to deploy the Seller contract and check if the contract onwer is account[0]', async () => {
+    seller = await Seller.new();
+
+    expect(await seller.owner()).to.equal(account0);
+  })
+
+  /**
+   * @test the addSeller(address) function
+   * contract owner can add a new seller address and total number of sellers is properly incremented
+   */
+  it(' should let contract owner to add a new seller and increment the number of sellers', async () => {
+    const nb = (await seller.getNbSellers()).toNumber();
+    expect(await seller.isSeller(account1)).to.equal(false);
+    await seller.addSeller(account1, {from: accounts[0]});
+
+    expect(await seller.isSeller(account1)).to.equal(true);
+    expect((await seller.getNbSellers()).toNumber()).to.equal(nb+1);
+  })
+
+  /**
+   * @test the addSeller(address) function
+   * ONLY contract owner can add a new seller address
+   */
+  it(' should not let an account other than the owner create a new seller and increment the number of sellers', async () => {
+    const nb = (await seller.getNbSellers()).toNumber();
+    expect(await seller.isSeller(account2)).to.equal(false);
+    await expect(seller.addSeller(account2, {from: account1})).to.be.rejected;
+    expect((await seller.getNbSellers()).toNumber()).to.equal(nb);
+  })
+
+  /**
+   * @test the addSeller(address) function
+   * a seller address can only be added ONCE
+   */
+  it(' should not create a new seller in the list if seller address already exists', async () => {
+    expect(await seller.isSeller(account1)).to.equal(true);
+    await expect(seller.addSeller(account1, {from: account0})).to.be.rejected;
+  })
+
+  /**
+   * @test the deleteSeller(address) function
+   * contract owner can delete a seller address and total number of sellers is properly decremented
+   */
+  it(' should allow the contract owner to remove a seller and decrement the number of sellers', async () => {
+    const nb = (await seller.getNbSellers()).toNumber();
+    expect(await seller.isSeller(account2)).to.equal(false);
+    await seller.addSeller(account2, {from: accounts[0]});
+    expect(await seller.isSeller(account2)).to.equal(true);
+    expect((await seller.getNbSellers()).toNumber()).to.equal(nb+1);
+
+    await seller.deleteSeller(account2, {from: accounts[0]});
+    expect(await seller.isSeller(account2)).to.equal(false);
+    expect((await seller.getNbSellers()).toNumber()).to.equal(nb);
+  })
+
+  /**
+   * @test the deleteSeller(address) function
+   * ONLY contract owner can delete a seller address
+   */
+  it(' should not let an account other than the owner remove a seller and decrement the number of sellers', async () => {
+    const nb = (await seller.getNbSellers()).toNumber();
+    expect(await seller.isSeller(account1)).to.equal(true);
+    await expect(seller.deleteSeller(account1, {from: account1})).to.be.rejected;
+    expect((await seller.getNbSellers()).toNumber()).to.equal(nb);
+  })
+
+  /**
+   * @test the deleteSeller(address) function
+   * only an existing seller address can be deleted
+   */
+  it(' should delete a seller address in the list only if the seller address exists', async () => {
+    const nb = (await seller.getNbSellers()).toNumber();
+    expect(await seller.isSeller(account2)).to.equal(false);
+    await expect(seller.deleteSeller(account2, {from: account0})).to.be.rejected;
+    expect((await seller.getNbSellers()).toNumber()).to.equal(nb);
+  })
+})
+
+Create /test/marketshare.test.js test file
+import chai from 'chai'
+import chaiAsPromised from 'chai-as-promised'
+chai.use(chaiAsPromised)
+const { expect, assert } = chai
+
+var MarketShare = artifacts.require("MarketShare");
+
+contract('Testing MarketShare contract', function(accounts) {
+  let marketshare;
+  const account0 = accounts[0];
+  const account1 = accounts[1];
+  const account2 = accounts[2];
+
+  it(' should be able to deploy the MarketShare contract and check if the contract onwer is account[0]', async () => {
+    marketshare = await MarketShare.new();
+
+    expect(await marketshare.owner()).to.equal(account0);
+  })
+})
+
+Run test
+Boddah/GfK/$ truffle test
+
+
+——————————————— GIT —————————————
+
+Check if git is installed on your computer
+Boddah/GfK/$ git --version
+git version 2.20.1 (Apple Git-117)
+
+Personalising few of git settings
+Boddah/GfK/$ git config --global user.name “David”
+Boddah/GfK/$ git config --global user.email “galinec.david@gmail.com” 
+
+Initialise a new git repository
+Boddah/GfK/$ git init 
+
+Know the status of your repository
+Boddah/GfK/$ git status
+
+List files to be ignored
+Boddah/GfK/$ touch .gitignore 
+
+  .DS_Store
+  node_modules/
+
+
+
+——————————————— REMIX —————————————
+
+pragma solidity ^0.5.0;
+
+import "github.com/OpenZeppelin/zeppelin-solidity/contracts/ownership/Ownable.sol";
+import "github.com/OpenZeppelin/zeppelin-solidity/contracts/math/SafeMath.sol";
+
+/**
+ * @title Seller
+ * @dev The Seller contract manages creation, information and deletion of the
+ * seller addresses.
+ */
+contract Seller is Ownable {
+    
+    using SafeMath for uint256;
+    
+    mapping(address => bool) private areSellers;
+    uint256 private nbSellers;
+
+    constructor() public { }
+    
+    /**
+     * @dev add a new seller
+     */
+    function addSeller(address _address) public onlyOwner {
+        require(!areSellers[_address]);
+        areSellers[_address] = true;
+        nbSellers = nbSellers.add(1);
+    }
+    
+    /**
+     * @dev delete an existing seller
+     */
+    function deleteSeller(address _address) public onlyOwner {
+        require(areSellers[_address]);
+        areSellers[_address] = false;
+        nbSellers = nbSellers.sub(1);
+    }
+    
+    /**
+     * @return if a given address corresponds to a listed seller
+     */
+    function isSeller(address _address) public view returns(bool) {
+        return areSellers[_address];
+    }
+    
+    /**
+     * @return the total number number of currently listed sellers
+     */
+    function getNbSellers() public view returns(uint256) {
+        return nbSellers;
+    }
+    
+    /**
+     * @dev throws if called by any account not listed as a seller
+     */
+    modifier isAllowed() {
+        require(areSellers[msg.sender]);
+        _;
+    }
+}
+
+/**
+ * @title MarketShare
+ * @dev The MarketShare contract manages creatin, information and deletion of sales
+ * records.
+ */
+contract MarketShare is Seller {
+    
+    using SafeMath for uint256;
+
+    mapping(address => uint256) private sales;
+    uint256 private totalSales;
+    uint256 private nbSales;
+
+    constructor() public {
+    }
+    
+    /**
+     * @dev records a sale from a seller
+     */
+    function recordSales(int256 _value) public isAllowed {
+        
+        /**
+         * @dev we do not allow negative sales value to be entered
+         */
+        require(_value >= 0);
+        _addSales(uint256(_value));
+    }
+    
+    function _addSales(uint256 _value) internal {
+        
+        /**
+         * @dev if a sales value already exists for a given address we delete it by 
+         * substracting it from totalSales and decreasing the nbSales counter 
+         */
+        if (sales[msg.sender] != 0) {
+            totalSales = totalSales.sub(sales[msg.sender]);
+            nbSales = nbSales.sub(1);
+        }
+        
+        sales[msg.sender] = _value;
+        
+        /**
+         * @dev we record a new sales only if the _value entered is greater than zero
+         */
+        if (_value > 0) {
+           totalSales = totalSales.add(_value);
+           nbSales = nbSales.add(1); 
+        }
+    }
+    
+    /**
+     * @return the number of sales records coming from different seller addresses
+     */
+    function getNbSales() public view returns(uint256) {
+        return nbSales;
+    }
+    
+    /**
+     * @return the total amount of sales records currently being recorded
+     */
+    function getTotalSales() public view returns(uint256) {
+        return totalSales;
+    }
+    
+    /**
+     * @return the sales record currently associated to a particular seller address
+     */
+    function getSales(address _address) public view returns(uint256) {
+        return sales[_address];
+    }
+}
+
+——————————————— VERSION 0 —————————————
+pragma solidity ^0.5.0;
+
+import "github.com/OpenZeppelin/zeppelin-solidity/contracts/ownership/Ownable.sol";
+
+contract MarketShare is Ownable {
+
+    uint[] private sales;
+
+    constructor() public {
+    }
+    
+    function addSales(uint _value) public {
+        sales.push(_value);
+    }
+    
+    function nbSales() public view returns(uint) {
+        return sales.length;
+    }
+    
+    function getSales(uint _index) public view returns(uint) {
+        return sales[_index];
+    }
+}
+
