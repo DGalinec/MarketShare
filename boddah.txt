@@ -376,6 +376,16 @@ Boddah/GfK/$ git commit -m ‘My first commit.’ 
 Push the changes on the server repository 
 Boddah/GfK/$ git push origin master 
 
+Display all branches 
+Boddah/GfK/$ git branch
+
+Create a new branch 
+Boddah/GfK/$ git branch name_of_the_branch 
+Switch to another branch 
+Boddah/GfK/$ git checkout name_of_the_branch 
+
+
+
 
 ——————————————— REMIX —————————————
 
