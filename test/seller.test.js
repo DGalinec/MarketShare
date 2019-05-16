@@ -50,7 +50,9 @@ contract('Testing Seller contract', function(accounts) {
    */
   it(' should not create a new seller in the list if seller address already exists', async () => {
     expect(await seller.isSeller(account1)).to.equal(true);
+    const nb = (await seller.getNbSellers()).toNumber();
     await expect(seller.addSeller(account1, {from: account0})).to.be.rejected;
+    expect((await seller.getNbSellers()).toNumber()).to.equal(nb);
   })
 
   /**

@@ -52,6 +52,22 @@ contract MarketShare is Seller {
     }
 
     /**
+     * @dev contract owner has the right to delete any sales record
+     */
+    function deleteSales(address _address) public onlyOwner {
+        require(isSeller(_address), "provided address does not correspond to an authorised seller");
+
+        /**
+         * @dev do something only if some sales have been previously recorded
+         */
+        if (sales[_address] > 0) {
+            totalSales = totalSales.sub(sales[_address]);
+            sales[_address] = 0;
+            nbSales = nbSales.sub(1);
+        }
+    }
+
+    /**
      * @return the number of sales records coming from different seller addresses
      */
     function getNbSales() public view returns(uint256) {
