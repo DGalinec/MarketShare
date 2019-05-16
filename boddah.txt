@@ -384,8 +384,15 @@ Boddah/GfK/$ git branch name_of_the_branch 
 Switch to another branch 
 Boddah/GfK/$ git checkout name_of_the_branch 
 
+Push a branch to GitHub 
+Boddah/GfK/$ git push origin name_of_the_branch 
 
+Merge a branch to master in the command line
+On branch master
+Boddah/GfK/$ git merge name_of_the_branch
 
+Delete unnecessary branches 
+Boddah/GfK/$ git branch -d name_of_the_branch_to_be_deleted 
 
 ——————————————— REMIX —————————————
 

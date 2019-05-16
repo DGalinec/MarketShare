@@ -11,6 +11,9 @@ contract('Testing Seller contract', function(accounts) {
   const account1 = accounts[1];
   const account2 = accounts[2];
 
+  /**
+   * @test proper Seller contract deployment
+   */
   it(' should be able to deploy the Seller contract and check if the contract onwer is account[0]', async () => {
     seller = await Seller.new();
 
