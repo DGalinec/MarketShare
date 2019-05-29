@@ -68,6 +68,34 @@ contract MarketShare is Seller {
     }
 
     /**
+     * @dev contract owner can record sales on behalf of a seller
+     */
+    function enterSales(address _address, int256 _value) public onlyOwner {
+        require(isSeller(_address), "provided address does not correspond to an authorised seller");
+        require(_value >= 0, "entered value must be positive or equal to zero");
+        uint256 _uvalue = uint256(_value);
+
+        /**
+         * @dev if a sales value already exists for a given address we delete it by
+         * substracting it from totalSales and decreasing the nbSales counter
+         */
+        if (sales[_address] != 0) {
+            totalSales = totalSales.sub(sales[_address]);
+            nbSales = nbSales.sub(1);
+        }
+
+        sales[_address] = _uvalue;
+
+        /**
+         * @dev we record a new sales only if the _value entered is greater than zero
+         */
+        if (_uvalue > 0) {
+           totalSales = totalSales.add(_uvalue);
+           nbSales = nbSales.add(1);
+        }
+    }
+
+    /**
      * @return the number of sales records coming from different seller addresses
      */
     function getNbSales() public view returns(uint256) {

@@ -4,7 +4,6 @@ chai.use(chaiAsPromised)
 const { expect, assert } = chai
 
 var MarketShare = artifacts.require("MarketShare");
-var Seller = artifacts.require("Seller");
 
 contract('Testing MarketShare contract', function(accounts) {
   let marketshare;
@@ -143,4 +142,50 @@ contract('Testing MarketShare contract', function(accounts) {
     await expect(marketshare.deleteSales(account1, {from: account2})).to.be.rejected;
     expect((await marketshare.getSales(account1)).toNumber()).to.equal(_valuesales);
   })
+
+  /**
+   * @test that only contract owner can use the enterSales function
+   */
+  it(' should not let soemone else than the contract owner to activate the enterSales function', async () => {
+    expect(await marketshare.isSeller(account1)).to.equal(true);
+    expect((await marketshare.getSales(account1)).toNumber()).to.gt(0);
+    const _valuesales = (await marketshare.getSales(account1)).toNumber();
+    const _nbsales = (await marketshare.getNbSales()).toNumber();
+    const _totalsales = (await marketshare.getTotalSales()).toNumber();
+    await expect(marketshare.enterSales(account1, _valuesales+1, {from: account2})).to.be.rejected;
+    expect((await marketshare.getSales(account1)).toNumber()).to.equal(_valuesales);
+    expect((await marketshare.getNbSales()).toNumber()).to.equal(_nbsales);
+    expect((await marketshare.getTotalSales()).toNumber()).to.equal(_totalsales);
+  })
+
+  /**
+   * @test that contract owner cannot enter a negative sales value
+   */
+  it(' should not let the contract owner to enter a negative sales record value', async () => {
+    expect(await marketshare.isSeller(account1)).to.equal(true);
+    const _valuesales = (await marketshare.getSales(account1)).toNumber();
+    const _nbsales = (await marketshare.getNbSales()).toNumber();
+    const _totalsales = (await marketshare.getTotalSales()).toNumber();
+    await expect(marketshare.enterSales(account1, -1, {from: contractowner})).to.be.rejected;
+    expect((await marketshare.getSales(account1)).toNumber()).to.equal(_valuesales);
+    expect((await marketshare.getNbSales()).toNumber()).to.equal(_nbsales);
+    expect((await marketshare.getTotalSales()).toNumber()).to.equal(_totalsales);
+  })
+
+  /**
+   * @test that nothing is recorded when contract owner records zero sales to a zero sales value seller
+   */
+  it(' should not record anything when a listed seller starts by entering a zero sales value', async () => {
+    expect(await marketshare.isSeller(account2)).to.equal(true);
+    expect((await marketshare.getSales(account2)).toNumber()).to.equal(0);
+
+    const _valuesales = 0;
+    const _nbsales = (await marketshare.getNbSales()).toNumber();
+    const _totalsales = (await marketshare.getTotalSales()).toNumber();
+    await marketshare.enterSales(account2, _valuesales, {from: contractowner});
+    expect((await marketshare.getNbSales()).toNumber()).to.equal(_nbsales);
+    expect((await marketshare.getTotalSales()).toNumber()).to.equal(_totalsales);
+    expect((await marketshare.getSales(account2)).toNumber()).to.equal(_valuesales);
+  })
+  
 })
